@@ -285,7 +285,6 @@
       }
 
       playButton.addEventListener('click', async () => {
-        if (!hasMicrophone() && !(await enableMicrophone())) return;
         playButton.disabled = true;
         setStatus('Playing the recording. Take notes while you listen.');
         try { await prompt.play(); } catch { playButton.disabled = false; setStatus('The recording did not start. Please try once more.', true); }
