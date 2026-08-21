@@ -56,7 +56,7 @@
     .carousel-slide.start-slide > .card .status { align-self: start; margin: 0; }
     .carousel-slide.task-slide { grid-template-rows: minmax(0, 1fr); }
     .carousel-slide.task-slide > .task { display: grid; grid-template-columns: minmax(0, 1fr) minmax(250px, .78fr); grid-template-rows: auto auto minmax(0, 1fr); column-gap: clamp(22px, 4vw, 52px); row-gap: 12px; align-items: start; padding: clamp(24px, 4vw, 50px); border-color: #c9ddd3; background: #fff; }
-    .carousel-slide.task-slide .task-top, .carousel-slide.task-slide .muted, .carousel-slide.task-slide .recording { grid-column: 1; }
+    .carousel-slide.task-slide .task-top, .carousel-slide.task-slide .muted, .carousel-slide.task-slide .audio-row, .carousel-slide.task-slide .recording { grid-column: 1; }
     .carousel-slide.task-slide .controls, .carousel-slide.task-slide .timer, .carousel-slide.task-slide .status { grid-column: 2; }
     .carousel-slide.task-slide .controls { grid-row: 1; margin: 0; }
     .carousel-slide.task-slide .timer { grid-row: 2; margin: 0; color: #0e4c3e; font-size: clamp(44px, 6vw, 68px); }
@@ -76,7 +76,7 @@
       .carousel-slide > header { padding: 22px; }
       .carousel-slide > header .intro { margin-top: 12px; padding: 10px 12px; }
       .carousel-slide.start-slide > .card, .carousel-slide.task-slide > .task { grid-template-columns: 1fr; gap: 12px; padding: 20px; }
-      .carousel-slide.start-slide > .card h2, .carousel-slide.start-slide > .card ol, .carousel-slide.start-slide > .card .controls, .carousel-slide.start-slide > .card .status, .carousel-slide.task-slide .task-top, .carousel-slide.task-slide .muted, .carousel-slide.task-slide .recording, .carousel-slide.task-slide .controls, .carousel-slide.task-slide .timer, .carousel-slide.task-slide .status { grid-column: 1; grid-row: auto; }
+      .carousel-slide.start-slide > .card h2, .carousel-slide.start-slide > .card ol, .carousel-slide.start-slide > .card .controls, .carousel-slide.start-slide > .card .status, .carousel-slide.task-slide .task-top, .carousel-slide.task-slide .muted, .carousel-slide.task-slide .audio-row, .carousel-slide.task-slide .recording, .carousel-slide.task-slide .controls, .carousel-slide.task-slide .timer, .carousel-slide.task-slide .status { grid-column: 1; grid-row: auto; }
       .carousel-slide.start-slide > .card ol { margin-top: 0; }
       .carousel-slide.task-slide > .task { grid-template-rows: auto; }
       .carousel-slide.task-slide .timer { font-size: 48px; }
@@ -117,7 +117,8 @@
     <section class="card task" data-task="RL-001" data-audio="PTEA-RL-001-space-shuttle.mp3">
       <div class="task-top"><div><span class="tag">Task 1</span><h2>Space shuttle</h2></div><span class="tag">Listen once</span></div>
       <p class="muted">Take notes while you listen. When it ends, prepare, then record your answer.</p>
-      <div class="controls"><button class="play-button">Play recording</button><button class="record-button recording" disabled>Start 40-second answer</button></div>
+      <div class="audio-row"><audio class="lecture-audio" controls preload="metadata"></audio></div>
+      <div class="controls"><button class="record-button recording" disabled>Start 40-second answer</button></div>
       <div class="timer" aria-live="polite">00:10</div>
       <p class="status" aria-live="polite">Ready when you are.</p>
       <div class="recording"><strong>Your saved answer</strong><audio controls></audio></div>
@@ -126,7 +127,8 @@
     <section class="card task" data-task="RL-002" data-audio="PTEA-RL-002-ocean-health.mp3">
       <div class="task-top"><div><span class="tag">Task 2</span><h2>Ocean health</h2></div><span class="tag">Listen once</span></div>
       <p class="muted">Take notes while you listen. When it ends, prepare, then record your answer.</p>
-      <div class="controls"><button class="play-button">Play recording</button><button class="record-button recording" disabled>Start 40-second answer</button></div>
+      <div class="audio-row"><audio class="lecture-audio" controls preload="metadata"></audio></div>
+      <div class="controls"><button class="record-button recording" disabled>Start 40-second answer</button></div>
       <div class="timer" aria-live="polite">00:10</div>
       <p class="status" aria-live="polite">Ready when you are.</p>
       <div class="recording"><strong>Your saved answer</strong><audio controls></audio></div>
@@ -225,13 +227,13 @@
 
     function prepareTask(card) {
       const taskId = card.dataset.task;
-      const playButton = card.querySelector('.play-button');
       const recordButton = card.querySelector('.record-button');
       const timer = card.querySelector('.timer');
       const status = card.querySelector('.status');
       const recordingBox = card.querySelector('.recording');
       const playback = card.querySelector('.recording audio');
-      const prompt = new Audio(`${BACKEND}/audio/${encodeURIComponent(card.dataset.audio)}?session=${encodeURIComponent(session)}`);
+      const prompt = card.querySelector('.lecture-audio');
+      prompt.src = `${BACKEND}/audio/${encodeURIComponent(card.dataset.audio)}?session=${encodeURIComponent(session)}`;
       let preparationTimer = null;
       let answerTimer = null;
       let recorder = null;
@@ -282,13 +284,9 @@
         answerTimer = setInterval(() => { remaining -= 1; timer.textContent = formatTime(remaining); if (remaining <= 0 && recorder?.state === 'recording') recorder.stop(); }, 1000);
       }
 
-      playButton.addEventListener('click', async () => {
-        playButton.disabled = true;
-        setStatus('Playing the recording. Take notes while you listen.');
-        try { await prompt.play(); } catch { playButton.disabled = false; setStatus('The recording did not start. Please try once more.', true); }
-      });
+      prompt.addEventListener('play', () => setStatus('Take notes while you listen.'));
       prompt.addEventListener('ended', startPreparation, { once: true });
-      prompt.addEventListener('error', () => setStatus('The recording could not be played. Refresh the page and try again.', true), { once: true });
+      prompt.addEventListener('error', () => setStatus('The recording could not be played. Please use the player controls to try again.', true));
       recordButton.addEventListener('click', () => { if (recorder?.state === 'recording') recorder.stop(); else void startRecording(); });
     }
 
