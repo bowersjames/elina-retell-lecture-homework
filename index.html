@@ -246,7 +246,6 @@
       const reply = await fetch(`${BACKEND}/api/upload?session=${encodeURIComponent(session)}&task=${encodeURIComponent(taskId)}`, { method: 'POST', headers: { 'Content-Type': blob.type || 'audio/webm' }, body: blob });
       if (reply.status === 409) throw new Error('already-submitted');
       if (!reply.ok) throw new Error('upload-failed');
-      return reply.json();
     }
 
     function prepareTask(card) {
@@ -292,8 +291,8 @@
           playback.src = URL.createObjectURL(blob);
           recordingBox.classList.add('show');
           try {
-            const result = await saveAnswer(taskId, blob);
-            setStatus(result?.transcription?.transcribed ? 'Answer saved and transcribed for James. You can listen back here.' : 'Answer saved for James. You can listen back here.');
+            await saveAnswer(taskId, blob);
+            setStatus('Answer saved for James. You can listen back here.');
             status.classList.add('complete');
           }
           catch (error) { setStatus(error.message === 'already-submitted' ? 'This task already has its final saved answer.' : 'Your answer was recorded but did not upload. Please replay the recording and try again.', true); }
