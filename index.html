@@ -56,7 +56,8 @@
     .carousel-slide.start-slide > .card .status { align-self: start; margin: 0; }
     .carousel-slide.task-slide { grid-template-rows: minmax(0, 1fr); }
     .carousel-slide.task-slide > .task { display: grid; grid-template-columns: minmax(0, 1fr) minmax(250px, .78fr); grid-template-rows: auto auto minmax(0, 1fr); column-gap: clamp(22px, 4vw, 52px); row-gap: 12px; align-items: start; padding: clamp(24px, 4vw, 50px); border-color: #c9ddd3; background: #fff; }
-    .carousel-slide.task-slide .task-top, .carousel-slide.task-slide .muted, .carousel-slide.task-slide .audio-row, .carousel-slide.task-slide .recording { grid-column: 1; }
+    .carousel-slide.task-slide .task-top, .carousel-slide.task-slide .muted, .carousel-slide.task-slide .one-attempt-warning, .carousel-slide.task-slide .audio-row, .carousel-slide.task-slide .recording { grid-column: 1; }
+    .one-attempt-warning { margin: 0; padding: 10px 12px; border-left: 4px solid var(--green); border-radius: 8px; background: var(--soft); color: #173c31; font-weight: 750; }
     .carousel-slide.task-slide .auto-recording, .carousel-slide.task-slide .timer, .carousel-slide.task-slide .status { grid-column: 2; }
     .carousel-slide.task-slide .auto-recording { grid-row: 1; margin: 0; color: var(--muted); font-weight: 700; }
     .carousel-slide.task-slide .timer { grid-row: 2; margin: 0; color: #0e4c3e; font-size: clamp(44px, 6vw, 68px); }
@@ -76,7 +77,7 @@
       .carousel-slide > header { padding: 22px; }
       .carousel-slide > header .intro { margin-top: 12px; padding: 10px 12px; }
       .carousel-slide.start-slide > .card, .carousel-slide.task-slide > .task { grid-template-columns: 1fr; gap: 12px; padding: 20px; }
-      .carousel-slide.start-slide > .card h2, .carousel-slide.start-slide > .card ol, .carousel-slide.start-slide > .card .controls, .carousel-slide.start-slide > .card .status, .carousel-slide.task-slide .task-top, .carousel-slide.task-slide .muted, .carousel-slide.task-slide .audio-row, .carousel-slide.task-slide .recording, .carousel-slide.task-slide .auto-recording, .carousel-slide.task-slide .timer, .carousel-slide.task-slide .status { grid-column: 1; grid-row: auto; }
+      .carousel-slide.start-slide > .card h2, .carousel-slide.start-slide > .card ol, .carousel-slide.start-slide > .card .controls, .carousel-slide.start-slide > .card .status, .carousel-slide.task-slide .task-top, .carousel-slide.task-slide .muted, .carousel-slide.task-slide .one-attempt-warning, .carousel-slide.task-slide .audio-row, .carousel-slide.task-slide .recording, .carousel-slide.task-slide .auto-recording, .carousel-slide.task-slide .timer, .carousel-slide.task-slide .status { grid-column: 1; grid-row: auto; }
       .carousel-slide.start-slide > .card ol { margin-top: 0; }
       .carousel-slide.task-slide > .task { grid-template-rows: auto; }
       .carousel-slide.task-slide .timer { font-size: 48px; }
@@ -117,6 +118,7 @@
     <section class="card task" data-task="RL-001" data-audio="PTEA-RL-001-space-shuttle.mp3">
       <div class="task-top"><div><span class="tag">Task 1</span><h2>Space shuttle</h2></div><span class="tag">Listen once</span></div>
       <p class="muted">Take notes while you listen. When it ends, prepare, then record your answer.</p>
+      <p class="one-attempt-warning">You can record this task once only. Your first saved answer is final.</p>
       <div class="audio-row"><audio class="lecture-audio" controls preload="metadata"></audio></div>
       <p class="auto-recording">Your 40-second answer starts automatically after preparation.</p>
       <div class="timer" aria-live="polite">00:10</div>
@@ -127,6 +129,7 @@
     <section class="card task" data-task="RL-002" data-audio="PTEA-RL-002-ocean-health.mp3">
       <div class="task-top"><div><span class="tag">Task 2</span><h2>Ocean health</h2></div><span class="tag">Listen once</span></div>
       <p class="muted">Take notes while you listen. When it ends, prepare, then record your answer.</p>
+      <p class="one-attempt-warning">You can record this task once only. Your first saved answer is final.</p>
       <div class="audio-row"><audio class="lecture-audio" controls preload="metadata"></audio></div>
       <p class="auto-recording">Your 40-second answer starts automatically after preparation.</p>
       <div class="timer" aria-live="polite">00:10</div>
@@ -222,6 +225,7 @@
 
     async function saveAnswer(taskId, blob) {
       const reply = await fetch(`${BACKEND}/api/upload?session=${encodeURIComponent(session)}&task=${encodeURIComponent(taskId)}`, { method: 'POST', headers: { 'Content-Type': blob.type || 'audio/webm' }, body: blob });
+      if (reply.status === 409) throw new Error('already-submitted');
       if (!reply.ok) throw new Error('upload-failed');
     }
 
@@ -268,7 +272,7 @@
           playback.src = URL.createObjectURL(blob);
           recordingBox.classList.add('show');
           try { await saveAnswer(taskId, blob); setStatus('Answer saved for James. You can listen back here.'); status.classList.add('complete'); }
-          catch { setStatus('Your answer was recorded but did not upload. Please replay the recording and try again.', true); }
+          catch (error) { setStatus(error.message === 'already-submitted' ? 'This task already has its final saved answer.' : 'Your answer was recorded but did not upload. Please replay the recording and try again.', true); }
         }, { once: true });
         let remaining = 40;
         timer.textContent = formatTime(remaining);
